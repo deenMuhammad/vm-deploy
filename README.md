@@ -53,7 +53,7 @@ Compose restrictions (they protect the shared VM):
 | Input | Default | |
 |---|---|---|
 | `action` | `deploy` | `deploy`, `destroy`, `rollback`, `logs`, `status` |
-| `subdomain` | | One DNS label (`a-z0-9-`, up to 40 characters). Names that already have their own DNS record (for example `api.oson.ai`) and reserved names are refused. The first deploy claims the name for you. |
+| `subdomain` | | One DNS label (`a-z0-9-`, up to 40 characters). Names that already have their own DNS record (for example `api.oson.ai`) and reserved names are refused. The first deploy claims the name for you. `@` deploys to the bare domain (only `bosvor.app`, and only if the admin enabled it for you). |
 | `domain` | `bosvor.app` | `oson.ai` or `bosvor.app` |
 | `context` | `.` | Directory sent to the VM. Up to 500 MB compressed; `.git` is excluded and `.dockerignore` applies during the build. |
 | `dockerfile` | `Dockerfile` | Relative to `context` |

@@ -21,7 +21,7 @@ inputs:
     description: deploy | destroy | rollback | logs | status
     default: deploy
   subdomain:
-    description: Single DNS label, e.g. "shop" or "pr-12-shop". Required except for status.
+    description: Single DNS label, e.g. "shop" or "pr-12-shop", or "@" for the bare domain (admin-enabled). Required except for status.
     default: ""
   domain:
     description: oson.ai or bosvor.app
