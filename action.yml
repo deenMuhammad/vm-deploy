@@ -104,6 +104,9 @@ outputs:
   url:
     description: https URL of the app (deploy / rollback).
     value: ${{ steps.run.outputs.url }}
+  logs_url:
+    description: Grafana link to the app's logs since this deploy (deploy / rollback).
+    value: ${{ steps.run.outputs.logs_url }}
   result:
     description: Raw JSON result from the VM.
     value: ${{ steps.run.outputs.result }}

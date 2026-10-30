@@ -70,7 +70,7 @@ Compose restrictions (they protect the shared VM):
 | `purge_data` | `false` | `destroy`: also delete the app's volumes. Otherwise they are kept for 7 days. |
 | `lines` / `since` / `log_service` | `200` | `logs` options |
 
-Outputs: `url` and `result` (raw JSON). The job summary shows the URL and release.
+Outputs: `url`, `logs_url` (Grafana, from this deploy on) and `result` (raw JSON). The job summary shows the URL, release and a logs link.
 
 Every app gets these environment variables: `APP_HOST`, `APP_URL`, `PORT`, `GIT_SHA` and `DEPLOYED_BY` (plus `GPU_MEMORY_GB` and `GPU_MEMORY_FRACTION` for GPU apps).
 

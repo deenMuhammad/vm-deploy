@@ -71,6 +71,8 @@ fi
 
 url="$(jq -r '.url // empty' <<<"$result")"
 [ -z "$url" ] || echo "url=$url" >> "$GITHUB_OUTPUT"
+logs_url="$(jq -r '.logs_url // empty' <<<"$result")"
+[ -z "$logs_url" ] || echo "logs_url=$logs_url" >> "$GITHUB_OUTPUT"
 {
   case "$IN_ACTION" in
     deploy|rollback)
@@ -81,6 +83,7 @@ url="$(jq -r '.url // empty' <<<"$result")"
       echo "| URL | $url |"
       echo "| Commit | \`$(jq -r .git_sha <<<"$result")\` |"
       echo "| Release | \`$(jq -r .tag <<<"$result")\` |"
+      [ -z "$logs_url" ] || echo "| Logs | [Open in Grafana]($logs_url) |"
       echo
       echo "Logs in Grafana: \`{app=\"$(jq -r .hostname <<<"$result")\"}\`"
       ;;
