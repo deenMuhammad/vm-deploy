@@ -1,0 +1,53 @@
+# .github/workflows/deploy.yml - compose app (web + postgres) after tests pass.
+# compose.yml in the repo, e.g.:
+#   services:
+#     web:
+#       build: .
+#       environment:
+#         DATABASE_URL: postgres://app:${POSTGRES_PASSWORD}@db:5432/app
+#       depends_on: [db]
+#     db:
+#       image: postgres:17
+#       environment:
+#         POSTGRES_USER: app
+#         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}   # from APP_ENV (also used for ${...} interpolation)
+#       volumes: [pgdata:/var/lib/postgresql/data]
+#       deploy: { resources: { limits: { memory: 256m } } }
+#   volumes:
+#     pgdata: {}
+name: deploy
+on:
+  push:
+    branches: [main]
+
+concurrency: deploy-api
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "run your tests here"
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment:
+      name: dev
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: deploy
+        uses: deenMuhammad/vm-deploy@v1
+        with:
+          ssh_key: ${{ secrets.VM_DEPLOY_KEY }}
+          cf_access_client_id: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+          subdomain: api
+          domain: bosvor.app
+          compose_file: compose.yml
+          service: web
+          port: "8000"
+          memory: 1g
+          health_path: /health
+          app_env: ${{ secrets.APP_ENV }}

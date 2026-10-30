@@ -1,0 +1,30 @@
+# .github/workflows/deploy.yml - GPU app (your account needs gpu: true).
+# The VM has one RTX 3090 Ti (24 GB) shared by all GPU apps: declare an honest
+# gpu_memory_gb and size your model with the injected GPU_MEMORY_FRACTION, e.g.
+#   vllm serve ... --gpu-memory-utilization ${GPU_MEMORY_FRACTION}
+name: deploy
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: deploy
+        uses: deenMuhammad/vm-deploy@v1
+        with:
+          ssh_key: ${{ secrets.VM_DEPLOY_KEY }}
+          cf_access_client_id: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+          subdomain: llm
+          domain: oson.ai
+          port: "8000"
+          gpu: "true"
+          gpu_memory_gb: "8"
+          memory: 4g
+          cpus: "2"
+          health_path: /health
+          health_timeout: "600"
+          data_dir: /root/.cache/huggingface
+          app_env: ${{ secrets.APP_ENV }}

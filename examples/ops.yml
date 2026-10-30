@@ -1,0 +1,26 @@
+# .github/workflows/vm.yml - logs / status / rollback / destroy from the Actions tab.
+name: vm
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        type: choice
+        options: [logs, status, rollback, destroy]
+      subdomain:
+        default: myapp
+      lines:
+        default: "200"
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: deenMuhammad/vm-deploy@v1
+        with:
+          ssh_key: ${{ secrets.VM_DEPLOY_KEY }}
+          cf_access_client_id: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+          action: ${{ inputs.action }}
+          subdomain: ${{ inputs.subdomain }}
+          domain: bosvor.app
+          lines: ${{ inputs.lines }}

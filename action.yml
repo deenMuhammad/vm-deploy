@@ -1,0 +1,163 @@
+name: VM deploy
+description: Deploy a Dockerfile or compose app to <subdomain>.oson.ai / <subdomain>.bosvor.app on the oson VM.
+author: deenMuhammad
+branding:
+  icon: upload-cloud
+  color: orange
+
+inputs:
+  # --- connection (from secrets) ---------------------------------------------------
+  ssh_key:
+    description: Your deploy SSH private key (secrets.VM_DEPLOY_KEY).
+    required: true
+  cf_access_client_id:
+    description: Cloudflare Access service token id (secrets.CF_ACCESS_CLIENT_ID).
+    required: true
+  cf_access_client_secret:
+    description: Cloudflare Access service token secret (secrets.CF_ACCESS_CLIENT_SECRET).
+    required: true
+  # --- what & where ------------------------------------------------------------------
+  action:
+    description: deploy | destroy | rollback | logs | status
+    default: deploy
+  subdomain:
+    description: Single DNS label, e.g. "shop" or "pr-12-shop". Required except for status.
+    default: ""
+  domain:
+    description: oson.ai or bosvor.app
+    default: bosvor.app
+  # --- build ---------------------------------------------------------------------------
+  context:
+    description: Directory sent to the VM (the docker build context). Paths below are relative to it.
+    default: "."
+  dockerfile:
+    description: Dockerfile mode - path of the Dockerfile.
+    default: Dockerfile
+  compose_file:
+    description: Compose mode - path of the compose file (then `service` is required).
+    default: ""
+  service:
+    description: Compose mode - the service that gets the subdomain.
+    default: ""
+  port:
+    description: Port the public service listens on inside the container.
+    default: "8080"
+  build_args:
+    description: KEY=VALUE lines passed as docker build args (not secret).
+    default: ""
+  # --- runtime -------------------------------------------------------------------------
+  env:
+    description: KEY=VALUE lines added to the runtime environment (not secret).
+    default: ""
+  app_env:
+    description: Secret dotenv (KEY=VALUE lines), e.g. secrets.APP_ENV. Replaces the previous one on every deploy.
+    default: ""
+  data_dir:
+    description: Dockerfile mode - mount a persistent volume at this path in the container.
+    default: ""
+  memory:
+    description: Memory limit of the public service, e.g. 1g (default 512m).
+    default: ""
+  cpus:
+    description: CPU limit of the public service, e.g. 1.5 (default 0.5).
+    default: ""
+  gpu:
+    description: "true to get the GPU (your account must be GPU-enabled)."
+    default: "false"
+  gpu_memory_gb:
+    description: VRAM budget in GB, required with gpu. Exposed as GPU_MEMORY_GB / GPU_MEMORY_FRACTION.
+    default: ""
+  health_path:
+    description: Path probed until the app answers below 500 (ignored when the image has a HEALTHCHECK).
+    default: /
+  health_timeout:
+    description: Seconds to wait for the app to become healthy before rolling back.
+    default: "120"
+  ttl_hours:
+    description: Destroy the app automatically after this many hours (previews). TTL apps do not count toward your quota.
+    default: ""
+  # --- destroy / logs ------------------------------------------------------------------
+  purge_data:
+    description: destroy - also delete the app's volumes.
+    default: "false"
+  lines:
+    description: logs - number of lines.
+    default: "200"
+  since:
+    description: logs - e.g. 30m, 2h.
+    default: ""
+  log_service:
+    description: logs - only this compose service.
+    default: ""
+  # --- advanced --------------------------------------------------------------------------
+  host:
+    description: Deploy host.
+    default: deploy.oson.ai
+  known_hosts:
+    description: known_hosts line(s) for the deploy host.
+    default: "deploy.oson.ai ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAPaNvOF2T+DYBFTKHP60cF6sgXuGkvlexwn/MRmbsFt"
+  cloudflared_version:
+    description: cloudflared release used to reach the host.
+    default: "2026.10.3"
+
+outputs:
+  url:
+    description: https URL of the app (deploy / rollback).
+    value: ${{ steps.run.outputs.url }}
+  result:
+    description: Raw JSON result from the VM.
+    value: ${{ steps.run.outputs.result }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install cloudflared
+      shell: bash
+      env:
+        CLOUDFLARED_VERSION: ${{ inputs.cloudflared_version }}
+      run: |
+        set -euo pipefail
+        bin="$RUNNER_TEMP/vm-deploy-bin"
+        mkdir -p "$bin"
+        if [ ! -x "$bin/cloudflared" ]; then
+          curl -fsSL -o "$bin/cloudflared" \
+            "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/cloudflared-linux-amd64"
+          chmod +x "$bin/cloudflared"
+        fi
+        echo "$bin" >> "$GITHUB_PATH"
+
+    - name: Deploy
+      id: run
+      shell: bash
+      env:
+        VM_SSH_KEY: ${{ inputs.ssh_key }}
+        TUNNEL_SERVICE_TOKEN_ID: ${{ inputs.cf_access_client_id }}
+        TUNNEL_SERVICE_TOKEN_SECRET: ${{ inputs.cf_access_client_secret }}
+        VM_HOST: ${{ inputs.host }}
+        VM_KNOWN_HOSTS: ${{ inputs.known_hosts }}
+        IN_ACTION: ${{ inputs.action }}
+        IN_SUBDOMAIN: ${{ inputs.subdomain }}
+        IN_DOMAIN: ${{ inputs.domain }}
+        IN_CONTEXT: ${{ inputs.context }}
+        IN_DOCKERFILE: ${{ inputs.dockerfile }}
+        IN_COMPOSE_FILE: ${{ inputs.compose_file }}
+        IN_SERVICE: ${{ inputs.service }}
+        IN_PORT: ${{ inputs.port }}
+        IN_BUILD_ARGS: ${{ inputs.build_args }}
+        IN_ENV: ${{ inputs.env }}
+        IN_APP_ENV: ${{ inputs.app_env }}
+        IN_DATA_DIR: ${{ inputs.data_dir }}
+        IN_MEMORY: ${{ inputs.memory }}
+        IN_CPUS: ${{ inputs.cpus }}
+        IN_GPU: ${{ inputs.gpu }}
+        IN_GPU_MEMORY_GB: ${{ inputs.gpu_memory_gb }}
+        IN_HEALTH_PATH: ${{ inputs.health_path }}
+        IN_HEALTH_TIMEOUT: ${{ inputs.health_timeout }}
+        IN_TTL_HOURS: ${{ inputs.ttl_hours }}
+        IN_PURGE_DATA: ${{ inputs.purge_data }}
+        IN_LINES: ${{ inputs.lines }}
+        IN_SINCE: ${{ inputs.since }}
+        IN_LOG_SERVICE: ${{ inputs.log_service }}
+        REPO: ${{ github.repository }}
+        SHA: ${{ github.sha }}
+      run: bash "$GITHUB_ACTION_PATH/deploy.sh"

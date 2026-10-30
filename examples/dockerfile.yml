@@ -1,0 +1,29 @@
+# .github/workflows/deploy.yml - Dockerfile app on every push to main.
+name: deploy
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency: deploy-${{ github.ref }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: dev
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: deploy
+        uses: deenMuhammad/vm-deploy@v1
+        with:
+          ssh_key: ${{ secrets.VM_DEPLOY_KEY }}
+          cf_access_client_id: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+          subdomain: myapp
+          domain: bosvor.app
+          port: "3000"
+          app_env: ${{ secrets.APP_ENV }}
+          env: |
+            NODE_ENV=production

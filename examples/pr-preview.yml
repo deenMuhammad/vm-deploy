@@ -1,0 +1,32 @@
+# .github/workflows/preview.yml - one app per PR at pr-<n>-myapp.bosvor.app,
+# destroyed (with its data) when the PR closes. ttl_hours is the safety net,
+# and TTL apps don't count toward your app quota.
+name: preview
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+concurrency: preview-${{ github.event.number }}
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    environment:
+      name: preview-${{ github.event.number }}
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event.action != 'closed'
+      - id: deploy
+        uses: deenMuhammad/vm-deploy@v1
+        with:
+          ssh_key: ${{ secrets.VM_DEPLOY_KEY }}
+          cf_access_client_id: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+          action: ${{ github.event.action == 'closed' && 'destroy' || 'deploy' }}
+          purge_data: "true"
+          subdomain: pr-${{ github.event.number }}-myapp
+          domain: bosvor.app
+          port: "3000"
+          ttl_hours: "72"
+          app_env: ${{ secrets.APP_ENV }}
