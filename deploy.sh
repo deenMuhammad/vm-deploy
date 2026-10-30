@@ -3,6 +3,15 @@
 # deploy script over SSH through Cloudflare Access. Secrets only travel on stdin.
 set -euo pipefail
 
+missing=""
+[ -n "$VM_SSH_KEY" ] || missing="$missing ssh_key"
+[ -n "$TUNNEL_SERVICE_TOKEN_ID" ] || missing="$missing cf_access_client_id"
+[ -n "$TUNNEL_SERVICE_TOKEN_SECRET" ] || missing="$missing cf_access_client_secret"
+if [ -n "$missing" ]; then
+  echo "::error::empty input(s):$missing. Are the secrets set on this repo (or its org/environment)? Forks never get secrets."
+  exit 1
+fi
+
 tmp="$(mktemp -d "$RUNNER_TEMP/vm-deploy.XXXXXX")"
 trap 'rm -rf "$tmp"' EXIT
 umask 077
